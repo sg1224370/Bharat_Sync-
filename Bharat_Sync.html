@@ -1,0 +1,2596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BharatSync — AI Civic Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,200;1,9..40,300&family=Space+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        heading: ['Syne', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:#030508;color:#f0f4ff;overflow-x:hidden;font-family:'DM Sans',sans-serif;cursor:none}
+
+  /* Custom Cursor */
+  #cursor{position:fixed;width:12px;height:12px;background:rgba(255,255,255,.9);border-radius:50%;pointer-events:none;z-index:9999;transition:transform .1s ease,opacity .3s;mix-blend-mode:difference}
+  #cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:50%;pointer-events:none;z-index:9998;transition:all .15s ease}
+  #cursor.hovering{transform:scale(2.5);opacity:.5}
+  #cursor-ring.hovering{transform:scale(1.5);border-color:rgba(99,102,241,.6)}
+
+  /* Liquid Glass */
+  .glass{
+    background:rgba(255,255,255,.02);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.07);
+    position:relative;overflow:hidden
+  }
+  .glass::before{
+    content:'';position:absolute;inset:0;border-radius:inherit;
+    background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,transparent 50%,rgba(255,255,255,.02) 100%);
+    pointer-events:none
+  }
+  .glass-strong{
+    background:rgba(255,255,255,.04);
+    backdrop-filter:blur(40px);
+    -webkit-backdrop-filter:blur(40px);
+    border:1px solid rgba(255,255,255,.1);
+    box-shadow:0 0 40px rgba(99,102,241,.08),inset 0 1px 0 rgba(255,255,255,.08);
+    position:relative;overflow:hidden
+  }
+
+  /* Buttons */
+  .btn-primary{
+    position:relative;cursor:none;
+    background:rgba(255,255,255,.04);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:9999px;
+    padding:14px 36px;
+    font-family:'DM Sans',sans-serif;
+    font-weight:400;
+    font-size:15px;
+    color:#fff;
+    letter-spacing:.02em;
+    transition:all .4s cubic-bezier(.23,1,.32,1);
+    overflow:hidden
+  }
+  .btn-primary::before{
+    content:'';position:absolute;inset:0;border-radius:inherit;
+    background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%), rgba(99,102,241,.15), transparent 40%);
+    opacity:0;transition:opacity .4s
+  }
+  .btn-primary:hover{
+    border-color:rgba(99,102,241,.4);
+    box-shadow:0 0 30px rgba(99,102,241,.2),0 0 60px rgba(99,102,241,.08);
+    transform:translateY(-2px)
+  }
+  .btn-primary:hover::before{opacity:1}
+  .btn-primary::after{content:'';position:absolute;inset:-1px;border-radius:inherit;background:linear-gradient(135deg,rgba(99,102,241,.2),transparent,rgba(139,92,246,.1));opacity:0;transition:.4s}
+  .btn-primary:hover::after{opacity:1}
+
+  /* Ripple */
+  .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.15);animation:ripple-anim .6s linear forwards;pointer-events:none}
+  @keyframes ripple-anim{0%{width:0;height:0;opacity:1;transform:translate(-50%,-50%)}100%{width:200px;height:200px;opacity:0;transform:translate(-50%,-50%)}}
+
+  /* Tilt cards */
+  .tilt-card{transform-style:preserve-3d;transition:transform .1s ease}
+  .tilt-card-inner{transform:translateZ(20px)}
+
+  /* Neural network canvas */
+  #neural-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.35}
+
+  /* Section layout */
+  section{position:relative;z-index:2}
+
+  /* Ashoka emblem */
+  #emblem-canvas{pointer-events:none}
+
+  /* Scanline effect */
+  .scanlines::after{
+    content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+    pointer-events:none;z-index:1
+  }
+
+  /* Text styles */
+  .font-ultra-thin{font-weight:200;letter-spacing:-.03em}
+  .font-light{font-weight:300}
+  .section-kicker{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.25em;color:rgba(255,255,255,.3);text-transform:uppercase}
+
+  /* Glowing tag */
+  .ai-tag{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);
+    border-radius:4px;padding:4px 10px;color:rgba(99,102,241,.9)
+  }
+
+  /* Video overlay */
+  .video-overlay{
+    position:absolute;inset:0;z-index:1;
+    background:linear-gradient(180deg,rgba(3,5,8,.55) 0%,rgba(3,5,8,.35) 40%,rgba(3,5,8,.7) 100%)
+  }
+
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+  @keyframes orbit{from{transform:rotate(0deg) translateX(120px) rotate(0deg)}to{transform:rotate(360deg) translateX(120px) rotate(-360deg)}}
+  @keyframes pulse-ring{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.6);opacity:0}}
+  @keyframes dash{to{stroke-dashoffset:-1000}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+  .floating{animation:float 6s ease-in-out infinite}
+  .floating-slow{animation:float 9s ease-in-out infinite}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:#000}
+  ::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:2px}
+
+  /* Gradient text */
+  .text-gradient{
+    background:linear-gradient(135deg,#e2e8f0 0%,#94a3b8 50%,#cbd5e1 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+  }
+  .text-gradient-indigo{
+    background:linear-gradient(135deg,#a5b4fc 0%,#818cf8 50%,#c4b5fd 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+  }
+  
+  /* Fade animations for alerts and toast notifications */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-in {
+    from { transform: translateY(12px); }
+    to { transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+  .animate-slide-in {
+    animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+</style>
+</head>
+<body>
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Neural Network Background Canvas -->
+<canvas id="neural-canvas"></canvas>
+
+<div id="root"></div>
+
+<script>
+// Custom Cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx - 6 + 'px';
+  cursor.style.top = my - 6 + 'px';
+});
+(function animRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx - 18 + 'px';
+  ring.style.top = ry - 18 + 'px';
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a,button,[data-hover]').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.classList.add('hovering'); ring.classList.add('hovering'); });
+  el.addEventListener('mouseleave', () => { cursor.classList.remove('hovering'); ring.classList.remove('hovering'); });
+});
+
+// Neural Network Canvas
+(function initNeural() {
+  const c = document.getElementById('neural-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, nodes = [], mouse = {x:0,y:0};
+  function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  for (let i = 0; i < 70; i++) {
+    nodes.push({x:Math.random()*100,y:Math.random()*100,vx:(Math.random()-.5)*.12,vy:(Math.random()-.5)*.12,r:Math.random()*1.8+.5});
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const ns = nodes.map(n => ({...n, px:n.x/100*W, py:n.y/100*H}));
+    ns.forEach((a,i) => {
+      ns.forEach((b,j) => {
+        if (i >= j) return;
+        const dx = a.px-b.px, dy = a.py-b.py, d = Math.sqrt(dx*dx+dy*dy);
+        if (d < 180) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(99,102,241,${(1-d/180)*.18})`;
+          ctx.lineWidth = .5;
+          ctx.moveTo(a.px,a.py); ctx.lineTo(b.px,b.py); ctx.stroke();
+        }
+      });
+      // Mouse interaction
+      const mdx = a.px - mouse.x, mdy = a.py - mouse.y;
+      const md = Math.sqrt(mdx*mdx+mdy*mdy);
+      if (md < 150) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(139,92,246,${(1-md/150)*.3})`;
+        ctx.lineWidth = .7;
+        ctx.moveTo(a.px,a.py); ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(a.px,a.py,a.r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(148,163,184,${.3+.2*Math.sin(Date.now()*.001+i)})`;
+      ctx.fill();
+      nodes[i].x += nodes[i].vx; nodes[i].y += nodes[i].vy;
+      if (nodes[i].x < 0 || nodes[i].x > 100) nodes[i].vx *= -1;
+      if (nodes[i].y < 0 || nodes[i].y > 100) nodes[i].vy *= -1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+const { motion, useScroll, useTransform, animate } = Motion;
+
+// ── Supabase Configuration ──────────────────────────────────
+const supabaseUrl = "https://mgofiaeapwaysokirxff.supabase.co";
+const supabaseKey = "sb_publishable_ZlPR5T_H9LXRWzrRGja1Pg_C5JyGgYF";
+const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+
+// ── FadingVideo ─────────────────────────────────────────
+const FadingVideo = ({ src, className }) => {
+  const ref = useRef(null);
+  const rafRef = useRef(null);
+  const fadingOut = useRef(false);
+
+  const fadeTo = useCallback((target, dur) => {
+    const el = ref.current; if (!el) return;
+    cancelAnimationFrame(rafRef.current);
+    const start = parseFloat(el.style.opacity || 0);
+    const t0 = performance.now();
+    const step = now => {
+      const p = Math.min((now - t0) / dur, 1);
+      el.style.opacity = start + (target - start) * p;
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const onLoad = () => { el.style.opacity = 0; el.play().catch(()=>{}); fadeTo(1, 1200); };
+    const onTime = () => {
+      if (!fadingOut.current && el.duration - el.currentTime <= 0.6) {
+        fadingOut.current = true; fadeTo(0, 600);
+      }
+    };
+    const onEnd = () => {
+      el.style.opacity = 0;
+      setTimeout(() => { el.currentTime = 0; el.play().catch(()=>{}); fadingOut.current = false; fadeTo(1, 1200); }, 100);
+    };
+    el.addEventListener('loadeddata', onLoad);
+    el.addEventListener('timeupdate', onTime);
+    el.addEventListener('ended', onEnd);
+    return () => { cancelAnimationFrame(rafRef.current); el.removeEventListener('loadeddata', onLoad); el.removeEventListener('timeupdate', onTime); el.removeEventListener('ended', onEnd); };
+  }, [src, fadeTo]);
+
+  return <video ref={ref} src={src} className={className} style={{opacity:0}} muted playsInline preload="auto" />;
+};
+
+// ── Word-by-word blur reveal ─────────────────────────────
+const RevealText = ({ text, className, delay = 0 }) => {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const ob = new IntersectionObserver(([e]) => { if(e.isIntersecting) setVis(true); }, {threshold:.1});
+    ob.observe(ref.current); return () => ob.disconnect();
+  }, []);
+  return (
+    <p ref={ref} className={className} style={{display:'flex',flexWrap:'wrap',gap:'.12em 0'}}>
+      {text.split(' ').map((w, i) => (
+        <motion.span key={i} style={{display:'inline-block',marginRight:'.25em'}}
+          initial={{filter:'blur(16px)',opacity:0,y:30}}
+          animate={vis ? {filter:'blur(0px)',opacity:1,y:0} : {}}
+          transition={{duration:.9,delay: delay + i*0.08,ease:[.25,.46,.45,.94]}}>
+          {w}
+        </motion.span>
+      ))}
+    </p>
+  );
+};
+
+// ── Tilt card ─────────────────────────────────────────────
+const TiltCard = ({ children, className }) => {
+  const ref = useRef(null);
+  const handleMove = e => {
+    const r = ref.current.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width/2;
+    const y = e.clientY - r.top - r.height/2;
+    ref.current.style.transform = `perspective(800px) rotateY(${x/r.width*12}deg) rotateX(${-y/r.height*12}deg) translateZ(8px)`;
+  };
+  const handleLeave = () => {
+    ref.current.style.transform = 'perspective(800px) rotateY(0) rotateX(0) translateZ(0)';
+  };
+  return (
+    <div ref={ref} className={className} onMouseMove={handleMove} onMouseLeave={handleLeave}
+      style={{transition:'transform .3s cubic-bezier(.23,1,.32,1)',transformStyle:'preserve-3d'}}>
+      {children}
+    </div>
+  );
+};
+
+// ── Magnetic Button ───────────────────────────────────────
+const MagBtn = ({ children, className, onClick }) => {
+  const ref = useRef(null);
+  const [pos, setPos] = useState({x:0,y:0});
+  const move = e => {
+    const r = ref.current.getBoundingClientRect();
+    setPos({x:(e.clientX-r.left-r.width/2)*.35, y:(e.clientY-r.top-r.height/2)*.35});
+    const px = ((e.clientX-r.left)/r.width*100).toFixed(1);
+    const py = ((e.clientY-r.top)/r.height*100).toFixed(1);
+    ref.current.style.setProperty('--mx', px+'%');
+    ref.current.style.setProperty('--my', py+'%');
+  };
+  const leave = () => setPos({x:0,y:0});
+  const click = e => {
+    const r = ref.current.getBoundingClientRect();
+    const rip = document.createElement('span');
+    rip.className = 'ripple';
+    rip.style.left = (e.clientX - r.left) + 'px';
+    rip.style.top = (e.clientY - r.top) + 'px';
+    ref.current.appendChild(rip);
+    setTimeout(() => rip.remove(), 700);
+    onClick && onClick(e);
+  };
+  return (
+    <motion.button ref={ref} className={className || 'btn-primary'}
+      onMouseMove={move} onMouseLeave={leave} onClick={click}
+      animate={{x:pos.x, y:pos.y}}
+      transition={{type:'spring',stiffness:180,damping:16,mass:.1}}>
+      {children}
+    </motion.button>
+  );
+};
+
+// ── Animated Counter ──────────────────────────────────────
+const Counter = ({ end, suffix='' }) => {
+  const [val, setVal] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    const ob = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        let s = 0;
+        const step = () => { s += end/60; setVal(Math.min(Math.floor(s), end)); if(s<end) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+        ob.disconnect();
+      }
+    }, {threshold:.5});
+    ob.observe(ref.current); return () => ob.disconnect();
+  }, [end]);
+  return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
+};
+
+// ── Navbar ────────────────────────────────────────────────
+const Navbar = ({ user, setView, onLogout }) => {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', h); return () => window.removeEventListener('scroll', h);
+  }, []);
+  const isOfficer = user && user.role === 'Officer';
+  const navLinks = [
+    { name: 'Home', href: '#home' },
+    { name: 'AI Engine', href: '#ai-engine' },
+    { name: 'Live Map', href: '#live-map' },
+    isOfficer 
+      ? { name: 'Officer Console', href: '#dashboard' } 
+      : { name: 'Grievance Hub', href: '#grievance-hub' },
+    isOfficer
+      ? { name: 'System Logs', href: '#dashboard' }
+      : { name: 'Community', href: '#community' }
+  ];
+  return (
+    <motion.nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-5"
+      initial={{opacity:0, y:-20}} animate={{opacity:1, y:0}} transition={{duration:.8,delay:.2}}>
+      <div className={`glass rounded-full px-6 py-3 flex items-center gap-8 transition-all duration-500 ${scrolled ? 'scale-95' : ''}`} style={{maxWidth:900,width:'90%'}}>
+        <div className="flex items-center gap-3 mr-auto cursor-pointer" onClick={() => setView('landing')} data-hover="true">
+          <div className="w-8 h-8 rounded-full glass-strong flex items-center justify-center">
+            <span className="font-heading font-semibold text-sm">B</span>
+          </div>
+          <span className="font-heading text-base font-light tracking-wide">BharatSync</span>
+        </div>
+        <div className="hidden md:flex items-center gap-6">
+          {navLinks.map(l => (
+            <a key={l.name} href={l.href} className="font-body text-sm font-light text-white/50 hover:text-white transition-colors tracking-wide">{l.name}</a>
+          ))}
+        </div>
+        {user ? (
+          <div className="flex items-center gap-4 ml-auto">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${user.role === 'Officer' ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+              <span className="font-body text-xs font-light text-white/80">{user.name}</span>
+            </div>
+            <button 
+              onClick={onLogout}
+              className="text-[11px] font-mono text-white/35 hover:text-rose-400 transition-colors uppercase tracking-wider cursor-none bg-transparent border-none outline-none"
+              data-hover="true"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <MagBtn onClick={() => setView('login')} className="btn-primary ml-auto text-sm !py-2.5 !px-5 font-light">Launch Portal</MagBtn>
+        )}
+      </div>
+    </motion.nav>
+  );
+};
+
+// ── Hero ──────────────────────────────────────────────────
+const Hero = ({ setView, user }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    // Three.js Ashoka-style emblem
+    const canvas = canvasRef.current;
+    if (!canvas || typeof THREE === 'undefined') return;
+    const W = canvas.parentElement.clientWidth;
+    const H = canvas.parentElement.clientHeight;
+    canvas.width = W; canvas.height = H;
+
+    const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, W/H, .1, 100);
+    camera.position.z = 5;
+
+    // Central glowing orb (Ashoka-like)
+    const geom = new THREE.IcosahedronGeometry(1.1, 5);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xb8a47a, metalness:.9, roughness:.1, transparent:true, opacity:.85, wireframe:false
+    });
+    const emblem = new THREE.Mesh(geom, mat);
+    scene.add(emblem);
+
+    // Wireframe overlay
+    const wMat = new THREE.MeshBasicMaterial({color:0xd4af6a, wireframe:true, transparent:true, opacity:.15});
+    const wire = new THREE.Mesh(geom, wMat);
+    scene.add(wire);
+
+    // Rings
+    for (let i = 0; i < 3; i++) {
+      const rg = new THREE.TorusGeometry(1.7+i*.5, .005+i*.003, 16, 120);
+      const rm = new THREE.MeshBasicMaterial({color: i===0?0x6366f1:i===1?0x8b5cf6:0x38bdf8, transparent:true, opacity:.4-i*.1});
+      const ring = new THREE.Mesh(rg, rm);
+      ring.rotation.x = Math.PI/2 + i*0.4;
+      ring.rotation.y = i*0.6;
+      scene.add(ring);
+    }
+
+    // Particles
+    const pGeo = new THREE.BufferGeometry();
+    const pCount = 600;
+    const pPos = new Float32Array(pCount*3);
+    for(let i=0;i<pCount*3;i++) pPos[i]=(Math.random()-.5)*14;
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
+    const pMat = new THREE.PointsMaterial({color:0x94a3b8, size:.03, transparent:true, opacity:.6});
+    scene.add(new THREE.Points(pGeo, pMat));
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0x334155, 2));
+    const pt1 = new THREE.PointLight(0x6366f1, 4, 8); pt1.position.set(3,2,3); scene.add(pt1);
+    const pt2 = new THREE.PointLight(0xd4af6a, 3, 6); pt2.position.set(-2,-1,2); scene.add(pt2);
+    const pt3 = new THREE.PointLight(0x38bdf8, 2, 5); pt3.position.set(0,3,-2); scene.add(pt3);
+
+    let mx=0, my=0;
+    const onMouse = e => { mx=(e.clientX/W-.5)*2; my=-(e.clientY/H-.5)*2; };
+    window.addEventListener('mousemove', onMouse);
+
+    let frame;
+    const animate = () => {
+      frame = requestAnimationFrame(animate);
+      const t = Date.now()*0.001;
+      emblem.rotation.y = t*.2 + mx*.3;
+      emblem.rotation.x = Math.sin(t*.15)*.2 + my*.2;
+      wire.rotation.y = emblem.rotation.y;
+      wire.rotation.x = emblem.rotation.x;
+      emblem.position.y = Math.sin(t*.5)*.12;
+      wire.position.y = emblem.position.y;
+      pt1.position.x = Math.sin(t*.7)*3;
+      pt1.position.y = Math.cos(t*.5)*2;
+      renderer.render(scene, camera);
+    };
+    animate();
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('mousemove', onMouse); renderer.dispose(); };
+  }, []);
+
+  return (
+    <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden scanlines">
+      <FadingVideo
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_080021_d598092b-c4c2-4e53-8e46-94cf9064cd50.mp4"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[130%] h-[130%] object-cover object-top z-0"
+      />
+      <div className="video-overlay" />
+      {/* 3D Canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 z-2 pointer-events-none" id="emblem-canvas" />
+
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:1,delay:.4}}
+            className="mb-8">
+            <span className="ai-tag">AI Governance Platform · India 2026</span>
+          </motion.div>
+
+          <RevealText
+            text="Redefining Citizen Trust Through Civic Intelligence"
+            className="font-heading text-5xl md:text-6xl lg:text-7xl leading-[1.0] tracking-[-0.03em] text-white/90 mb-8"
+            delay={0.5}
+          />
+
+          <motion.p initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:1,delay:1.2}}
+            className="font-body font-light text-lg text-white/35 leading-relaxed mb-12 max-w-lg">
+            An intelligent ecosystem bridging citizens and administration through AI-driven complaint routing, predictive escalation, and radical transparency.
+          </motion.p>
+
+          <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:1,delay:1.5}}
+            className="flex flex-wrap items-center gap-4">
+            <MagBtn onClick={() => {
+              if (!user) {
+                setView('login');
+              } else if (user.role === 'Officer') {
+                document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                document.getElementById('grievance-hub')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }} className="btn-primary flex items-center gap-3">
+              <span>{user && user.role === 'Officer' ? 'Go to Console' : 'File a Complaint'}</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 17L17 7M7 7h10v10"/></svg>
+            </MagBtn>
+            <MagBtn onClick={() => document.getElementById('live-map')?.scrollIntoView({ behavior: 'smooth' })} className="btn-primary flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full glass-strong flex items-center justify-center">
+                <svg className="w-3 h-3 fill-white/80" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <span className="text-white/60 font-light">Explore Live Map</span>
+            </MagBtn>
+          </motion.div>
+        </div>
+
+        {/* Floating HUD cards */}
+        <div className="hidden lg:flex flex-col gap-4 items-end">
+          {[
+            {icon:'📍',label:'Live Issues Tracked',val:'12,847',sub:'Updating in real-time'},
+            {icon:'🤖',label:'AI Accuracy',val:'99.8%',sub:'Categorization confidence'},
+            {icon:'⚡',label:'Avg Resolution',val:'34.5m',sub:'Across 18 departments'},
+          ].map((c,i) => (
+            <motion.div key={i} className="glass rounded-2xl px-5 py-4 w-64"
+              initial={{opacity:0,x:30}} animate={{opacity:1,x:0}}
+              transition={{duration:.8, delay:1.2+i*.15}}
+              style={{animation:`float ${6+i}s ease-in-out ${i*.5}s infinite`}}>
+              <div className="flex items-center gap-3 mb-1">
+                <span className="text-xl">{c.icon}</span>
+                <span className="section-kicker">{c.label}</span>
+              </div>
+              <div className="font-heading text-2xl font-light tracking-tight text-white/90">{c.val}</div>
+              <div className="font-mono text-[10px] text-white/25 mt-1">{c.sub}</div>
+              <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-emerald-400" style={{animation:'pulse-ring 2s ease-out infinite'}}/>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
+        initial={{opacity:0}} animate={{opacity:1}} transition={{delay:2}}>
+        <span className="section-kicker">Scroll to explore</span>
+        <motion.div className="w-px h-10 bg-gradient-to-b from-white/30 to-transparent"
+          animate={{scaleY:[1,.4,1]}} transition={{duration:2,repeat:Infinity}} style={{originY:0}} />
+      </motion.div>
+    </section>
+  );
+};
+
+// ── Stats Bar ─────────────────────────────────────────────
+const Stats = () => (
+  <section className="py-14 border-y border-white/[0.04]">
+    <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+      {[
+        {val:1200000,suffix:'+ ',label:'Complaints Resolved'},
+        {val:99,suffix:'.8%',label:'AI Categorization Accuracy'},
+        {val:18,suffix:'',label:'Departments Connected'},
+        {val:450,suffix:'+',label:'Cities Impacted'},
+      ].map((s,i) => (
+        <motion.div key={i} className="text-center"
+          initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}}
+          viewport={{once:true}} transition={{duration:.8,delay:i*.1}}>
+          <div className="font-heading text-3xl md:text-4xl font-ultralight tracking-tight text-white/80 mb-1">
+            <Counter end={s.val} suffix={s.suffix} />
+          </div>
+          <div className="section-kicker">{s.label}</div>
+        </motion.div>
+      ))}
+    </div>
+  </section>
+);
+
+// ── AI Engine ─────────────────────────────────────────────
+const AIEngine = () => {
+  const features = [
+    {icon:'⚡',title:'Smart Classification',desc:'NLP models trained on CPGRAMS data instantly route grievances to the correct department with 99.8% precision.',tag:'LIVE MODEL'},
+    {icon:'🧠',title:'Emotion & Priority AI',desc:'Detects distress, urgency, and vulnerability in complaints to auto-escalate life-threatening and senior citizen cases.',tag:'NEURAL'},
+    {icon:'🛰',title:'Geo-Intelligence',desc:'Satellite-assisted GPS pinpointing maps every grievance to the exact zone, ward, and responsible officer.',tag:'SPATIAL'},
+  ];
+  return (
+    <section id="ai-engine" className="py-32 relative">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-16">
+          <motion.div initial={{opacity:0}} whileInView={{opacity:1}} viewport={{once:true}}>
+            <div className="section-kicker mb-4">// Capabilities</div>
+          </motion.div>
+          <RevealText text="Governance Evolved." className="font-heading text-5xl md:text-7xl font-light tracking-tighter text-white/85" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.map((f,i) => (
+            <motion.div key={i} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}}
+              viewport={{once:true}} transition={{duration:.8,delay:i*.15}}>
+              <TiltCard className="glass-strong rounded-3xl p-8 h-full group cursor-none" data-hover="true">
+                <div className="w-11 h-11 glass rounded-2xl flex items-center justify-center text-xl mb-8">{f.icon}</div>
+                <div className="flex flex-wrap gap-2 mb-8">
+                  <span className="ai-tag">{f.tag}</span>
+                  <span className="ai-tag">REAL-TIME</span>
+                </div>
+                <h3 className="font-heading text-2xl font-light tracking-tight text-white/85 mb-4">{f.title}</h3>
+                <p className="font-body font-light text-white/35 leading-relaxed text-base">{f.desc}</p>
+                <div className="mt-8 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="h-px flex-1 bg-gradient-to-r from-indigo-500/50 to-transparent" />
+                  <span className="section-kicker text-indigo-400/70">Deep Dive</span>
+                </div>
+              </TiltCard>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ── Escalation Timeline ──────────────────────────────────
+const Escalation = () => {
+  const steps = [
+    {icon:'👤',label:'Citizen',sub:'Files complaint via voice, text, or photo'},
+    {icon:'🤖',label:'AI Engine',sub:'Categorizes, prioritizes & routes in < 2s'},
+    {icon:'🏛',label:'Officer',sub:'Assigned with SLA deadline & smart brief'},
+    {icon:'⚠️',label:'Escalation',sub:'Auto-triggered on SLA breach — no human needed'},
+    {icon:'✅',label:'Resolution',sub:'Citizen notified via SMS & WhatsApp'},
+  ];
+  return (
+    <section className="py-32 relative overflow-hidden">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-16">
+          <div className="section-kicker mb-4">// Smart Escalation</div>
+          <RevealText text="No Complaint Left Behind." className="font-heading text-5xl md:text-6xl font-light tracking-tighter text-white/85" />
+        </div>
+        <div className="relative">
+          {/* Animated connecting line */}
+          <div className="hidden md:block absolute top-[28px] left-0 right-0 h-px">
+            <div className="h-full bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+            <motion.div className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-violet-500"
+              initial={{width:'0%'}} whileInView={{width:'100%'}} viewport={{once:true}}
+              transition={{duration:2,ease:'easeInOut'}} style={{height:'1px',top:0}} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 relative z-10">
+            {steps.map((s,i) => (
+              <motion.div key={i} className="flex flex-col items-center text-center glass rounded-2xl p-5"
+                initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}}
+                viewport={{once:true}} transition={{duration:.6,delay:i*.2}}>
+                <div className="w-14 h-14 glass-strong rounded-2xl flex items-center justify-center text-2xl mb-4">
+                  {s.icon}
+                </div>
+                <div className="font-heading text-sm font-light text-white/80 mb-2">{s.label}</div>
+                <div className="font-body font-light text-xs text-white/30 leading-relaxed">{s.sub}</div>
+                {i < steps.length-1 && (
+                  <motion.div className="md:hidden w-px h-6 bg-indigo-500/30 mt-3"
+                    initial={{scaleY:0}} whileInView={{scaleY:1}} viewport={{once:true}}
+                    transition={{duration:.4,delay:i*.2}} />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ── Live Map ───────────────────────────────────────────────
+const LiveMap = () => {
+  const hotspots = [
+    {x:'28%',y:'22%',label:'Delhi NCR',count:847,color:'#ef4444'},
+    {x:'19%',y:'45%',label:'Mumbai',count:612,color:'#f97316'},
+    {x:'22%',y:'52%',label:'Pune',count:289,color:'#f59e0b'},
+    {x:'62%',y:'35%',label:'Kolkata',count:423,color:'#ef4444'},
+    {x:'28%',y:'68%',label:'Bangalore',count:356,color:'#f97316'},
+    {x:'42%',y:'72%',label:'Chennai',count:198,color:'#22c55e'},
+    {x:'35%',y:'28%',label:'Jaipur',count:167,color:'#22c55e'},
+    {x:'48%',y:'25%',label:'Lucknow',count:291,color:'#f97316'},
+  ];
+  return (
+    <section id="live-map" className="py-32 relative">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-12">
+          <div className="section-kicker mb-4">// Nation-wide Intelligence</div>
+          <RevealText text="Live Issue Heatmap." className="font-heading text-5xl md:text-6xl font-light tracking-tighter text-white/85" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-8 items-stretch">
+          <motion.div className="glass-strong rounded-3xl p-6 relative overflow-hidden" style={{minHeight:400}}
+            initial={{opacity:0,x:-30}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.8}}>
+            {/* Grid bg */}
+            <div className="absolute inset-0 opacity-5" style={{backgroundImage:'linear-gradient(rgba(99,102,241,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.5) 1px,transparent 1px)',backgroundSize:'40px 40px'}} />
+            <div className="absolute inset-0 opacity-10" style={{background:'radial-gradient(circle at 35% 50%,rgba(99,102,241,.4),transparent 60%)'}} />
+            {/* Hotspot dots */}
+            {hotspots.map((h,i) => (
+              <motion.div key={i} className="absolute" style={{left:h.x,top:h.y}}
+                initial={{scale:0}} whileInView={{scale:1}} viewport={{once:true}} transition={{delay:.3+i*.08}}>
+                <div className="relative cursor-none group" data-hover="true">
+                  <div className="w-3 h-3 rounded-full" style={{background:h.color,boxShadow:`0 0 12px ${h.color}`}} />
+                  <div className="absolute -inset-1 rounded-full animate-ping opacity-40" style={{background:h.color}} />
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity glass rounded-lg px-2.5 py-1.5 whitespace-nowrap z-20">
+                    <div className="font-heading text-xs text-white/80">{h.label}</div>
+                    <div className="font-mono text-[10px] text-white/30">{h.count} cases</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+            <div className="absolute bottom-4 left-4">
+              <div className="font-mono text-[10px] text-white/20">LIVE · BharatSync MAP v4</div>
+            </div>
+          </motion.div>
+
+          <motion.div className="flex flex-col gap-4"
+            initial={{opacity:0,x:30}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.8,delay:.2}}>
+            <div className="section-kicker mb-2">Active hotspots</div>
+            {hotspots.slice(0,5).map((h,i) => (
+              <TiltCard key={i} className="glass rounded-2xl px-5 py-3 flex items-center gap-4" data-hover="true">
+                <div className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{background:h.color,boxShadow:`0 0 8px ${h.color}`,animation:'pulse-ring 2s ease-out infinite'}} />
+                <div className="flex-1">
+                  <div className="font-heading text-sm font-light text-white/80">{h.label}</div>
+                </div>
+                <div className="font-mono text-xs text-white/30">{h.count} active</div>
+              </TiltCard>
+            ))}
+            <MagBtn className="btn-primary mt-2 w-full flex items-center justify-center gap-2">
+              <span>View Full Map</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 17L17 7M7 7h10v10"/></svg>
+            </MagBtn>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ── Dashboard Preview ─────────────────────────────────────
+const Dashboard = ({ user, setView, complaints, resolvedCount, onResolve, dbError }) => {
+  const [activeTab, setActiveTab] = useState('Complaints');
+  const [showSqlModal, setShowSqlModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  // Complaints Filters
+  const [filterDept, setFilterDept] = useState('All');
+  const [filterPriority, setFilterPriority] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Escalations state
+  const [escalations, setEscalations] = useState([
+    { id: 'COM-399', title: 'Water leakage near Sector-4 main line', dept: 'Water Supply', priority: 'Critical', time: '45m ago', breachTime: '2h ago', status: 'Breached' },
+    { id: 'COM-402', title: 'Streetlight malfunction on Ward Road', dept: 'PWD', priority: 'High', time: '12m ago', breachTime: '15m ago', status: 'Breached' }
+  ]);
+  const [showOverrideModal, setShowOverrideModal] = useState(null); // id of escalation
+  const [overrideHours, setOverrideHours] = useState('6');
+  const [overrideReason, setOverrideReason] = useState('');
+
+  // Officers Roster state
+  const [officers, setOfficers] = useState([
+    { id: 'OFF-101', name: 'Officer A. Sharma', dept: 'PWD', status: 'On Field', workload: 3 },
+    { id: 'OFF-102', name: 'Officer Rajesh Kumar', dept: 'Water Supply', status: 'Online', workload: 1 },
+    { id: 'OFF-103', name: 'Officer Priya Patel', dept: 'Sanitation', status: 'Busy', workload: 5 },
+    { id: 'OFF-104', name: 'Officer Vikram Singh', dept: 'Electricity', status: 'Offline', workload: 0 }
+  ]);
+
+  // Settings state
+  const [slaCritical, setSlaCritical] = useState(2);
+  const [slaHigh, setSlaHigh] = useState(6);
+  const [slaMedium, setSlaMedium] = useState(12);
+  const [aiRouting, setAiRouting] = useState(true);
+  const [whatsappAlerts, setWhatsappAlerts] = useState(true);
+  const [predictiveEscalation, setPredictiveEscalation] = useState(true);
+  const [crowdVerification, setCrowdVerification] = useState(false);
+
+  const addToast = (msg, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const isOfficer = user && user.role === 'Officer';
+
+  // Handler for Escalations dispatch
+  const handleDispatchCrew = (id) => {
+    setEscalations(prev => prev.map(e => e.id === id ? { ...e, status: 'Dispatched', breachTime: 'Crew En Route' } : e));
+    addToast(`Emergency dispatch crew initialized for ${id}. Nodal team alerted.`, 'info');
+  };
+
+  // Handler for SLA override
+  const handleOverrideSla = (e) => {
+    e.preventDefault();
+    if (!overrideReason.trim()) {
+      addToast('Please enter a reason for the SLA override', 'error');
+      return;
+    }
+    setEscalations(prev => prev.filter(item => item.id !== showOverrideModal));
+    addToast(`SLA successfully extended by +${overrideHours} hours for ${showOverrideModal}. Reason: "${overrideReason}"`, 'success');
+    setShowOverrideModal(null);
+    setOverrideReason('');
+  };
+
+  // Handler for Officer workload reassignment
+  const handleReassignWorkload = (id) => {
+    setOfficers(prev => prev.map(off => {
+      if (off.id === id && off.workload > 0) {
+        // Reduce workload by 1
+        const newWorkload = off.workload - 1;
+        // Distribute to Officer Rajesh Kumar (OFF-102)
+        setTimeout(() => {
+          setOfficers(curr => curr.map(o => o.id === 'OFF-102' ? { ...o, workload: o.workload + 1 } : o));
+        }, 100);
+        addToast(`Successfully reassigned workload from ${off.name}. Task transferred to Officer Rajesh Kumar.`, 'success');
+        return { ...off, workload: newWorkload };
+      }
+      return off;
+    }));
+  };
+
+  // Handler for Officer status change
+  const handleOfficerStatusChange = (id, newStatus) => {
+    setOfficers(prev => prev.map(off => off.id === id ? { ...off, status: newStatus } : off));
+    addToast(`Updated ${officers.find(o => o.id === id)?.name} duty status to: ${newStatus}`, 'info');
+  };
+
+  // Handler for department pings
+  const handlePingDepartment = (deptName) => {
+    addToast(`Secure notification broadcasted to ${deptName} Department Nodal Officer.`, 'success');
+  };
+
+  const handleTriggerAudit = (deptName) => {
+    addToast(`Performance audit scheduled for ${deptName} Department. SLA reporting logs generated.`, 'info');
+  };
+
+  return (
+    <section id="dashboard" className="py-32 relative">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-12">
+          <div className="section-kicker mb-4">// Admin Terminal</div>
+          <RevealText text="Transparency Redefined." className="font-heading text-5xl md:text-6xl font-light tracking-tighter text-white/85" />
+        </div>
+        
+        {/* Toast Container */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm pointer-events-none">
+          {toasts.map(t => (
+            <div key={t.id} className="glass-strong border border-white/[0.08] rounded-xl px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-2xl animate-fade-in animate-slide-in">
+              <div className={`w-2.5 h-2.5 rounded-full ${t.type === 'success' ? 'bg-emerald-400' : t.type === 'error' ? 'bg-rose-400' : 'bg-indigo-400'}`} />
+              <span className="font-body text-xs text-white/80">{t.msg}</span>
+            </div>
+          ))}
+        </div>
+
+        <motion.div className="glass-strong rounded-3xl overflow-hidden border border-white/[0.06] relative"
+          initial={{opacity:0,y:40}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.9}}>
+          
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-white/[0.05] flex items-center justify-between">
+            <div className="flex gap-2">
+              {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} className="w-3 h-3 rounded-full opacity-40" style={{background:c}} />)}
+            </div>
+            <span className="font-mono text-[10px] text-white/20 tracking-wider">
+              {isOfficer ? `BHARATSYNC OFFICER SESSION · ${user.department || 'PWD Department'}` : 'BHARATSYNC ADMIN · v4.0.2 · READ-ONLY'}
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{animation:'pulse-ring 2s ease-out infinite'}} />
+              <span className="font-mono text-[10px] text-emerald-400/60">LIVE</span>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-0">
+            {/* Sidebar */}
+            <div className="border-r border-white/[0.04] p-6 space-y-5">
+              {['Complaints','Analytics','Escalations','Departments','Officers','Settings'].map((m) => (
+                <button 
+                  key={m} 
+                  onClick={() => setActiveTab(m)}
+                  className={`block text-left w-full font-body font-light text-sm cursor-none transition-colors border-none bg-transparent outline-none ${activeTab === m ? 'text-white font-medium' : 'text-white/25 hover:text-white/60'}`} 
+                  data-hover="true"
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            {/* Main Content Area */}
+            <div className="md:col-span-3 p-8 relative min-h-[500px]">
+              {/* Overlay for non-officers */}
+              {!isOfficer && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-20 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-4">
+                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-heading text-lg font-light text-white/90 mb-2">Officer Console Locked</h4>
+                  <p className="font-body font-light text-white/40 text-xs max-w-sm mb-6 leading-relaxed">
+                    Access real-time grievances routing, process citizen complaints, and override SLAs. Sign in using Civic Officer credentials.
+                  </p>
+                  <MagBtn onClick={() => setView('login')} className="btn-primary !py-2 !px-5 text-xs font-light">
+                    Log In as Officer
+                  </MagBtn>
+                </div>
+              )}
+
+              {/* Supabase Status Warnings */}
+              {dbError && (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400/90 text-xs rounded-xl px-4 py-3.5 mb-6 font-body font-light flex items-center justify-between gap-3 relative z-10">
+                  <div className="flex items-center gap-2.5">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Supabase Connected: Table `complaints` not found. (Local state fallback)</span>
+                  </div>
+                  <button 
+                    onClick={() => setShowSqlModal(true)} 
+                    className="bg-amber-500/25 hover:bg-amber-500/35 text-amber-300 font-mono text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded transition-all cursor-none border-none outline-none"
+                    data-hover="true"
+                  >
+                    Setup Table
+                  </button>
+                </div>
+              )}
+
+              {/* Tab Views */}
+              {activeTab === 'Complaints' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  {/* Grid stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[
+                      {label:'Total Complaints',val:complaints.length.toString(),color:'#6366f1'},
+                      {label:'Resolved Today',val:resolvedCount.toLocaleString(),color:'#22c55e'},
+                      {label:'SLA Breached',val:'47',color:'#ef4444'},
+                    ].map((k,i) => (
+                      <div key={i} className="glass rounded-2xl p-4">
+                        <div className="section-kicker mb-2">{k.label}</div>
+                        <div className="font-heading text-2xl font-light" style={{color:k.color}}>{k.val}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Filters Bar */}
+                  <div className="glass rounded-2xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center border border-white/[0.03]">
+                    <div className="relative w-full md:w-auto flex-1">
+                      <input 
+                        type="text" 
+                        placeholder="Search ID or Keyword..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-[#030508]/40 border border-white/[0.08] focus:border-indigo-500/50 rounded-xl py-2 px-3 text-white text-xs font-light focus:outline-none transition-all placeholder-white/20"
+                      />
+                    </div>
+                    <div className="flex w-full md:w-auto gap-3 items-center">
+                      <select 
+                        value={filterDept} 
+                        onChange={(e) => setFilterDept(e.target.value)}
+                        className="bg-black/60 border border-white/[0.08] text-white text-xs font-light rounded-xl px-2.5 py-2 focus:outline-none"
+                      >
+                        <option value="All">All Departments</option>
+                        <option value="PWD">PWD</option>
+                        <option value="Water Supply">Water Supply</option>
+                        <option value="Sanitation">Sanitation</option>
+                        <option value="Electricity">Electricity</option>
+                      </select>
+                      <select 
+                        value={filterPriority} 
+                        onChange={(e) => setFilterPriority(e.target.value)}
+                        className="bg-black/60 border border-white/[0.08] text-white text-xs font-light rounded-xl px-2.5 py-2 focus:outline-none"
+                      >
+                        <option value="All">All Priorities</option>
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Complaints Table */}
+                  <div className="mt-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-heading text-lg font-light text-white/80">Pending Action Required</h4>
+                      <span className="font-mono text-[10px] text-white/30 uppercase tracking-widest">
+                        {complaints.filter(c => c.status !== 'Resolved').length} Tasks Pending
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {complaints
+                        .filter(c => {
+                          const matchDept = filterDept === 'All' || c.dept.toLowerCase().includes(filterDept.toLowerCase());
+                          const matchPriority = filterPriority === 'All' || c.priority.toLowerCase() === filterPriority.toLowerCase();
+                          const matchSearch = c.id.toLowerCase().includes(searchQuery.toLowerCase()) || c.title.toLowerCase().includes(searchQuery.toLowerCase());
+                          return matchDept && matchPriority && matchSearch;
+                        })
+                        .map((c) => (
+                          <div key={c.id} className="glass rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/[0.03]">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2.5">
+                                <span className="font-mono text-[10px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded">{c.id}</span>
+                                <span className={`text-[10px] font-mono tracking-wider uppercase px-2 py-0.5 rounded ${
+                                  c.priority === 'Critical' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                  c.priority === 'High' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                  'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                }`}>
+                                  {c.priority}
+                                </span>
+                                <span className="font-mono text-[10px] text-white/30">{c.time}</span>
+                              </div>
+                              <p className="font-body text-sm font-light text-white/80">{c.title}</p>
+                              <p className="font-body text-xs text-white/35">{c.dept} Department</p>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              {c.status === 'Resolved' ? (
+                                <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-xs px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
+                                  Resolved
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="font-mono text-xs text-amber-400/80 px-2.5 py-1 bg-amber-500/5 rounded-lg border border-amber-500/10">
+                                    {c.status}
+                                  </div>
+                                  <button
+                                    onClick={() => onResolve(c.id)}
+                                    className="text-xs font-heading font-light tracking-wide bg-indigo-500 hover:bg-indigo-600 border border-indigo-400/20 text-white px-4 py-2 rounded-lg transition-colors cursor-none"
+                                    data-hover="true"
+                                  >
+                                    Resolve Issue
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'Analytics' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                  <h4 className="font-heading text-lg font-light text-white/80">Real-Time Civic Analytics</h4>
+                  
+                  {/* Custom horizontal bar chart */}
+                  <div className="glass rounded-2xl p-6 border border-white/[0.03]">
+                    <div className="section-kicker mb-6">Complaint Volume by Department</div>
+                    <div className="space-y-4">
+                      {[
+                        { name: 'PWD (Roads & Lights)', percent: '42%', color: 'from-indigo-500 to-indigo-600', count: 5395 },
+                        { name: 'Water Supply', percent: '28%', color: 'from-blue-500 to-cyan-600', count: 3597 },
+                        { name: 'Sanitation & Waste', percent: '18%', color: 'from-emerald-500 to-teal-600', count: 2312 },
+                        { name: 'Electricity', percent: '12%', color: 'from-amber-500 to-orange-600', count: 1543 }
+                      ].map((item, index) => (
+                        <div key={index} className="space-y-1.5">
+                          <div className="flex justify-between text-xs font-body font-light text-white/60">
+                            <span>{item.name}</span>
+                            <span className="font-mono">{item.percent} ({item.count} complaints)</span>
+                          </div>
+                          <div className="h-2 w-full bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.04]">
+                            <motion.div 
+                              className={`h-full bg-gradient-to-r ${item.color} rounded-full`}
+                              initial={{ width: 0 }}
+                              animate={{ width: item.percent }}
+                              transition={{ duration: 1, ease: 'easeOut' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Core indicators */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="glass rounded-2xl p-6 border border-white/[0.03] flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="section-kicker">AI Routing Precision</div>
+                        <div className="font-heading text-3xl font-light text-indigo-400">99.8%</div>
+                        <p className="font-body text-xs text-white/30 max-w-xs">AI classification models matching CPGRAMS standards</p>
+                      </div>
+                      <div className="w-16 h-16 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                          <circle cx="32" cy="32" r="28" fill="transparent" stroke="rgba(255,255,255,0.02)" strokeWidth="4" />
+                          <circle cx="32" cy="32" r="28" fill="transparent" stroke="#6366f1" strokeWidth="4" strokeDasharray={176} strokeDashoffset={0.35} />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="glass rounded-2xl p-6 border border-white/[0.03]">
+                      <div className="section-kicker mb-2">Avg Resolution Time</div>
+                      <div className="font-heading text-3xl font-light text-emerald-400">34.5m</div>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-emerald-400 text-xs">↓ 14%</span>
+                        <span className="font-body text-[10px] text-white/20">decrease compared to last month</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'Escalations' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <h4 className="font-heading text-lg font-light text-white/80">SLA Breach Warnings (Auto-Escalated)</h4>
+                  <p className="font-body text-xs text-white/35">
+                    These issues are exceeding their SLA resolution timer. Review dispatching options or request administrative overrides.
+                  </p>
+
+                  <div className="space-y-4">
+                    {escalations.length === 0 ? (
+                      <div className="py-12 text-center text-white/20 border border-dashed border-white/[0.06] rounded-2xl">
+                        No active SLA breaches recorded. System operational parameters within normal limits.
+                      </div>
+                    ) : (
+                      escalations.map((item) => (
+                        <div key={item.id} className="glass-strong rounded-2xl p-5 border border-rose-500/10 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">{item.id}</span>
+                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold">{item.priority}</span>
+                              <span className="font-mono text-[10px] text-white/30">Registered {item.time}</span>
+                            </div>
+                            <h5 className="font-body text-sm font-light text-white/80">{item.title}</h5>
+                            <p className="font-body text-xs text-white/35">{item.dept} Department · <span className="text-rose-400 font-mono font-medium">Breached {item.breachTime}</span></p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 relative z-10">
+                            {item.status === 'Dispatched' ? (
+                              <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                Crew Dispatched
+                              </div>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => handleDispatchCrew(item.id)}
+                                  className="text-xs font-body font-light bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/30 text-rose-300 px-3.5 py-2 rounded-lg transition-colors cursor-none"
+                                  data-hover="true"
+                                >
+                                  Dispatch Crew
+                                </button>
+                                <button 
+                                  onClick={() => setShowOverrideModal(item.id)}
+                                  className="text-xs font-body font-light bg-white/5 hover:bg-white/10 border border-white/[0.08] text-white/80 px-3.5 py-2 rounded-lg transition-colors cursor-none"
+                                  data-hover="true"
+                                >
+                                  Override SLA
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Override Modal */}
+                  {showOverrideModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                      <form onSubmit={handleOverrideSla} className="w-full max-w-sm glass-strong border border-white/[0.08] rounded-3xl p-6 relative">
+                        <h3 className="font-heading text-base text-white/95 mb-4">Override SLA Alert for {showOverrideModal}</h3>
+                        
+                        <div className="space-y-4 mb-6">
+                          <div>
+                            <label className="block font-mono text-[9px] text-white/30 uppercase tracking-wider mb-1.5">Extension Time</label>
+                            <select 
+                              value={overrideHours}
+                              onChange={(e) => setOverrideHours(e.target.value)}
+                              className="w-full bg-black/60 border border-white/[0.08] text-white text-xs font-light rounded-xl px-2.5 py-2 focus:outline-none"
+                            >
+                              <option value="2">+2 Hours Extension</option>
+                              <option value="6">+6 Hours Extension</option>
+                              <option value="12">+12 Hours Extension</option>
+                              <option value="24">+24 Hours Extension (Nodal Approval)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block font-mono text-[9px] text-white/30 uppercase tracking-wider mb-1.5">Justification Reason</label>
+                            <textarea 
+                              value={overrideReason}
+                              onChange={(e) => setOverrideReason(e.target.value)}
+                              placeholder="Describe why the SLA is being overridden (e.g., Heavy rain, physical inspection required)"
+                              rows={3}
+                              className="w-full bg-white/[0.02] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl py-2 px-3 text-white text-xs font-light focus:outline-none transition-all placeholder-white/20 resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2.5">
+                          <button 
+                            type="button" 
+                            onClick={() => setShowOverrideModal(null)}
+                            className="bg-white/5 hover:bg-white/10 text-white/60 font-body text-xs px-3.5 py-1.5 rounded-lg cursor-none border-none"
+                            data-hover="true"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="submit"
+                            className="bg-indigo-500 hover:bg-indigo-600 text-white font-body text-xs px-3.5 py-1.5 rounded-lg cursor-none border-none"
+                            data-hover="true"
+                          >
+                            Apply Override
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === 'Departments' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <h4 className="font-heading text-lg font-light text-white/80">Civic Departments Directory</h4>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {[
+                      { name: 'PWD Department', response: '24m', sla: '98.2%', officers: 142 },
+                      { name: 'Water Supply Department', response: '42m', sla: '94.5%', officers: 89 },
+                      { name: 'Sanitation & Waste Department', response: '31m', sla: '96.0%', officers: 76 },
+                      { name: 'Electricity Department', response: '18m', sla: '99.1%', officers: 35 }
+                    ].map((dept, index) => (
+                      <div key={index} className="glass rounded-2xl p-5 border border-white/[0.03] space-y-4">
+                        <div>
+                          <h5 className="font-heading text-sm text-white/90">{dept.name}</h5>
+                          <span className="font-mono text-[9px] text-white/20 uppercase tracking-widest">Active Civic Node</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 border-y border-white/[0.04] py-3 text-center">
+                          <div>
+                            <div className="font-mono text-[10px] text-white/25">SLA MET</div>
+                            <div className="font-heading text-sm text-indigo-400 mt-1">{dept.sla}</div>
+                          </div>
+                          <div>
+                            <div className="font-mono text-[10px] text-white/25">RESPONSE</div>
+                            <div className="font-heading text-sm text-white/80 mt-1">{dept.response}</div>
+                          </div>
+                          <div>
+                            <div className="font-mono text-[10px] text-white/25">OFFICERS</div>
+                            <div className="font-heading text-sm text-white/80 mt-1">{dept.officers}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handlePingDepartment(dept.name)}
+                            className="flex-1 text-[10px] font-mono bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 py-1.5 rounded-lg transition-colors cursor-none uppercase tracking-wider"
+                            data-hover="true"
+                          >
+                            Ping Nodal
+                          </button>
+                          <button 
+                            onClick={() => handleTriggerAudit(dept.name)}
+                            className="flex-1 text-[10px] font-mono bg-white/5 hover:bg-white/10 border border-white/[0.08] text-white/70 py-1.5 rounded-lg transition-colors cursor-none uppercase tracking-wider"
+                            data-hover="true"
+                          >
+                            Trigger Audit
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'Officers' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <h4 className="font-heading text-lg font-light text-white/80">Duty Roster & Workload</h4>
+                  <p className="font-body text-xs text-white/35">
+                    Monitor officer location status and balance assignment loads. Reassign active backlogs to idle personnel.
+                  </p>
+
+                  <div className="space-y-3">
+                    {officers.map((off) => (
+                      <div key={off.id} className="glass rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/[0.03]">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded">{off.id}</span>
+                            <span className="font-heading text-sm font-light text-white/85">{off.name}</span>
+                          </div>
+                          <p className="font-body text-xs text-white/30">{off.dept} Department</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap justify-between sm:justify-start">
+                          {/* Status toggle selector */}
+                          <select 
+                            value={off.status} 
+                            onChange={(e) => handleOfficerStatusChange(off.id, e.target.value)}
+                            className={`bg-black/60 border border-white/[0.08] text-xs rounded-xl px-2.5 py-1.5 focus:outline-none ${
+                              off.status === 'Online' || off.status === 'On Field' ? 'text-emerald-400' :
+                              off.status === 'Busy' ? 'text-amber-400' : 'text-white/45'
+                            }`}
+                          >
+                            <option value="Online">Online</option>
+                            <option value="On Field">On Field</option>
+                            <option value="Busy">Busy</option>
+                            <option value="Offline">Offline</option>
+                          </select>
+
+                          {/* Workload Indicator */}
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs text-white/40">Tasks:</span>
+                            <span className={`font-mono text-xs font-semibold px-2 py-0.5 rounded ${
+                              off.workload > 4 ? 'bg-rose-500/10 text-rose-400' :
+                              off.workload > 1 ? 'bg-amber-500/10 text-amber-400' :
+                              'bg-emerald-500/10 text-emerald-400'
+                            }`}>
+                              {off.workload} Active
+                            </span>
+                          </div>
+
+                          <button 
+                            onClick={() => handleReassignWorkload(off.id)}
+                            disabled={off.workload === 0}
+                            className={`text-[10px] font-mono px-3 py-2 rounded-lg uppercase tracking-wider transition-colors cursor-none ${
+                              off.workload === 0 
+                                ? 'bg-white/5 text-white/20 border border-white/[0.04]' 
+                                : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                            }`}
+                            data-hover={off.workload > 0}
+                          >
+                            Reassign
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'Settings' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <h4 className="font-heading text-lg font-light text-white/80">System Configuration</h4>
+                  
+                  {/* SLA sliders */}
+                  <div className="glass rounded-2xl p-5 border border-white/[0.03] space-y-5">
+                    <h5 className="font-heading text-sm text-white/90">SLA Response Thresholds</h5>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-xs font-body font-light text-white/60 mb-1.5">
+                          <span>Critical Priority SLA Target</span>
+                          <span className="font-mono text-indigo-400">{slaCritical} Hours</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="12" 
+                          value={slaCritical}
+                          onChange={(e) => setSlaCritical(parseInt(e.target.value))}
+                          className="w-full accent-indigo-500 bg-white/10 rounded-lg appearance-none h-1 cursor-none"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs font-body font-light text-white/60 mb-1.5">
+                          <span>High Priority SLA Target</span>
+                          <span className="font-mono text-indigo-400">{slaHigh} Hours</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="2" 
+                          max="24" 
+                          value={slaHigh}
+                          onChange={(e) => setSlaHigh(parseInt(e.target.value))}
+                          className="w-full accent-indigo-500 bg-white/10 rounded-lg appearance-none h-1 cursor-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle switches */}
+                  <div className="glass rounded-2xl p-5 border border-white/[0.03] space-y-4">
+                    <h5 className="font-heading text-sm text-white/90">AI Routing & Broadcast Integrations</h5>
+                    
+                    <div className="space-y-3">
+                      {[
+                        { label: 'AI Automated Routing (CPGRAMS)', state: aiRouting, set: setAiRouting, desc: 'Instantly classifies and dispatches issues using neural matching.' },
+                        { label: 'WhatsApp & SMS Nodal Broadcasts', state: whatsappAlerts, set: setWhatsappAlerts, desc: 'Notifies officers and nodal leads instantly on registration/escalation.' },
+                        { label: 'Predictive Priority Escalations', state: predictiveEscalation, set: setPredictiveEscalation, desc: 'Uses distress analysis to preemptively raise SLA priority tags.' },
+                        { label: 'Citizen Validation Network', state: crowdVerification, set: setCrowdVerification, desc: 'Enables geo-adjacent validation checks by trusted citizens.' }
+                      ].map((item, index) => (
+                        <div key={index} className="flex items-center justify-between gap-4 border-b border-white/[0.04] last:border-0 pb-3 last:pb-0">
+                          <div>
+                            <div className="font-body text-xs text-white/80">{item.label}</div>
+                            <div className="font-body text-[10px] text-white/30">{item.desc}</div>
+                          </div>
+                          {/* Custom toggle switch */}
+                          <button 
+                            onClick={() => {
+                              item.set(!item.state);
+                              addToast(`${item.label} set to: ${!item.state ? 'ACTIVE' : 'INACTIVE'}`, 'info');
+                            }}
+                            className={`w-10 h-5.5 rounded-full p-0.5 transition-colors cursor-none border-none outline-none relative flex items-center ${
+                              item.state ? 'bg-indigo-500' : 'bg-white/10'
+                            }`}
+                            data-hover="true"
+                          >
+                            <motion.div 
+                              className="w-4 h-4 rounded-full bg-white shadow-md"
+                              animate={{ x: item.state ? 18 : 2 }}
+                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </motion.div>
+              )}
+
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* SQL Helper Modal */}
+      {showSqlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-xl glass-strong border border-white/[0.08] rounded-3xl p-6 md:p-8 relative overflow-hidden">
+            <h3 className="font-heading text-xl text-white/90 mb-2">Setup Supabase Database</h3>
+            <p className="font-body text-xs text-white/40 mb-6 leading-relaxed">
+              Run this SQL script in your Supabase Dashboard SQL Editor to create the tables (`complaints` & `civic_users`) and allow public anonymous inputs for the hackathon presentation.
+            </p>
+            <div className="relative mb-6">
+              <pre className="bg-black/60 rounded-xl p-4 text-[10px] font-mono text-indigo-300 overflow-x-auto border border-white/[0.04] max-h-60 select-all">
+{`-- 1. Create complaints table
+CREATE TABLE IF NOT EXISTS complaints (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  dept text NOT NULL,
+  priority text NOT NULL,
+  status text NOT NULL,
+  time text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access" ON complaints FOR SELECT USING (true);
+CREATE POLICY "Allow public insert access" ON complaints FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update access" ON complaints FOR UPDATE USING (true);
+
+-- Seed initial data
+INSERT INTO complaints (id, title, dept, priority, status, time) VALUES
+  ('COM-402', 'Streetlight malfunction on Ward Road', 'PWD', 'High', 'Pending', '12m ago'),
+  ('COM-399', 'Water leakage near Sector-4 main line', 'Water Supply', 'Critical', 'In Progress', '45m ago'),
+  ('COM-391', 'Pothole reporting near high school crossroad', 'PWD', 'Medium', 'Pending', '1h ago')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Create civic_users table
+CREATE TABLE IF NOT EXISTS civic_users (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  role text NOT NULL,
+  identifier text UNIQUE NOT NULL,
+  password text,
+  department text,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE civic_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read users" ON civic_users FOR SELECT USING (true);
+CREATE POLICY "Allow public insert users" ON civic_users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update users" ON civic_users FOR UPDATE USING (true);
+
+-- Seed initial demo users
+INSERT INTO civic_users (id, name, role, identifier, password, department) VALUES
+  ('IND-9082-8812', 'Rahul Sharma', 'Citizen', '9876543210', NULL, NULL),
+  ('OFF-PWD-847', 'Officer A. Sharma', 'Officer', 'officer@gov.in', 'admin', 'PWD Department'),
+  ('OFF-TRAF-112', 'Officer Rajesh Kumar', 'Officer', 'traffic@gov.in', 'admin', 'Traffic Department')
+ON CONFLICT (identifier) DO NOTHING;`}
+              </pre>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`CREATE TABLE IF NOT EXISTS complaints (
+  id text PRIMARY KEY,
+  title text NOT NULL,
+  dept text NOT NULL,
+  priority text NOT NULL,
+  status text NOT NULL,
+  time text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access" ON complaints FOR SELECT USING (true);
+CREATE POLICY "Allow public insert access" ON complaints FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update access" ON complaints FOR UPDATE USING (true);
+
+INSERT INTO complaints (id, title, dept, priority, status, time) VALUES
+  ('COM-402', 'Streetlight malfunction on Ward Road', 'PWD', 'High', 'Pending', '12m ago'),
+  ('COM-399', 'Water leakage near Sector-4 main line', 'Water Supply', 'Critical', 'In Progress', '45m ago'),
+  ('COM-391', 'Pothole reporting near high school crossroad', 'PWD', 'Medium', 'Pending', '1h ago')
+ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS civic_users (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  role text NOT NULL,
+  identifier text UNIQUE NOT NULL,
+  password text,
+  department text,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE civic_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read users" ON civic_users FOR SELECT USING (true);
+CREATE POLICY "Allow public insert users" ON civic_users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update users" ON civic_users FOR UPDATE USING (true);
+
+INSERT INTO civic_users (id, name, role, identifier, password, department) VALUES
+  ('IND-9082-8812', 'Rahul Sharma', 'Citizen', '9876543210', NULL, NULL),
+  ('OFF-PWD-847', 'Officer A. Sharma', 'Officer', 'officer@gov.in', 'admin', 'PWD Department'),
+  ('OFF-TRAF-112', 'Officer Rajesh Kumar', 'Officer', 'traffic@gov.in', 'admin', 'Traffic Department')
+ON CONFLICT (identifier) DO NOTHING;`);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="btn-primary !text-[11px] !py-2 !px-4 cursor-none font-light tracking-wide bg-transparent border-none"
+                data-hover="true"
+              >
+                {copied ? '✓ Copied SQL!' : 'Copy SQL Script'}
+              </button>
+              <button 
+                onClick={() => setShowSqlModal(false)}
+                className="bg-white/5 hover:bg-white/10 text-white/60 font-body text-xs px-4 py-2 rounded-lg cursor-none transition-colors border-none"
+                data-hover="true"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ── Voice AI ──────────────────────────────────────────────
+// ── Grievance Hub (Lodge & Track) ─────────────────────────
+const GrievanceHub = ({ user, setView, complaints, onComplaintFiled }) => {
+  const [activeTab, setActiveTab] = useState('lodge'); // 'lodge' | 'track'
+  const [text, setText] = useState('');
+  const [dept, setDept] = useState('PWD');
+  const [priority, setPriority] = useState('High');
+  const [filing, setFiling] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [searchId, setSearchId] = useState('');
+  const [trackedComplaint, setTrackedComplaint] = useState(null);
+  const [showVoiceDemo, setShowVoiceDemo] = useState(false);
+
+  const bars = Array.from({length: 20}, (_, i) => i);
+
+  const handleDemoFill = () => {
+    setShowVoiceDemo(true);
+    setTimeout(() => {
+      setText("The streetlights in my area have been broken for 3 days, it's dangerous at night...");
+      setDept("PWD");
+      setPriority("High");
+      setShowVoiceDemo(false);
+    }, 2500);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+
+    if (!user) {
+      setView('login');
+      return;
+    }
+
+    setFiling(true);
+    setSuccessMsg('');
+
+    const newId = `COM-${Math.floor(100 + Math.random() * 900)}`;
+    const newComplaint = {
+      id: newId,
+      title: text,
+      dept: dept,
+      priority: priority,
+      status: 'Pending',
+      time: 'Just now'
+    };
+
+    setTimeout(async () => {
+      let dbSaved = false;
+      try {
+        if (supabase) {
+          const { error } = await supabase.from('complaints').insert([newComplaint]);
+          if (!error) dbSaved = true;
+        }
+      } catch (err) {
+        console.error('Error writing to Supabase:', err);
+      } finally {
+        onComplaintFiled(newComplaint, dbSaved);
+        setSuccessMsg(`Complaint successfully filed in database! ID: ${newId}`);
+        setText('');
+        setFiling(false);
+        setSearchId(newId);
+        setTrackedComplaint(newComplaint);
+        setTimeout(() => {
+          setActiveTab('track');
+        }, 1000);
+      }
+    }, 1500);
+  };
+
+  const handleSearch = (e) => {
+    e?.preventDefault();
+    const cleanId = searchId.trim().toUpperCase();
+    const found = complaints.find(c => c.id.toUpperCase() === cleanId);
+    if (found) {
+      setTrackedComplaint(found);
+    } else {
+      setTrackedComplaint(null);
+    }
+  };
+
+  useEffect(() => {
+    if (searchId) {
+      const found = complaints.find(c => c.id.toUpperCase() === searchId.trim().toUpperCase());
+      setTrackedComplaint(found || null);
+    }
+  }, [searchId, complaints]);
+
+  return (
+    <section id="grievance-hub" className="py-32 relative border-t border-white/[0.04]">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-12">
+          <div className="section-kicker mb-4">// Citizen Portal</div>
+          <RevealText text="Lodge & Track Grievances." className="font-heading text-5xl md:text-6xl font-light tracking-tighter text-white/85" />
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Navigation Tabs & Actions */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="glass-strong rounded-2xl p-2 flex bg-white/[0.01] border border-white/[0.04]">
+              <button 
+                onClick={() => setActiveTab('lodge')}
+                className={`flex-1 py-3 rounded-xl text-xs font-heading font-light tracking-wider transition-all cursor-none ${
+                  activeTab === 'lodge' ? 'bg-white/[0.06] text-white border border-white/[0.08] shadow-lg' : 'text-white/40 hover:text-white/70 bg-transparent border-none'
+                }`}
+                data-hover="true"
+              >
+                Lodge Grievance
+              </button>
+              <button 
+                onClick={() => setActiveTab('track')}
+                className={`flex-1 py-3 rounded-xl text-xs font-heading font-light tracking-wider transition-all cursor-none ${
+                  activeTab === 'track' ? 'bg-white/[0.06] text-white border border-white/[0.08] shadow-lg' : 'text-white/40 hover:text-white/70 bg-transparent border-none'
+                }`}
+                data-hover="true"
+              >
+                Track Status
+              </button>
+            </div>
+
+            {/* Quick-track panel if they want to choose from list */}
+            {complaints.length > 0 && (
+              <div className="glass-strong rounded-3xl p-6 border border-white/[0.04]">
+                <h5 className="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-4">Recent Database Issues</h5>
+                <div className="space-y-2.5">
+                  {complaints.slice(0, 4).map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setSearchId(c.id);
+                        setActiveTab('track');
+                      }}
+                      className="w-full text-left glass hover:bg-white/[0.04] border border-white/[0.02] rounded-xl px-4 py-3 flex items-center justify-between transition-all group cursor-none bg-transparent"
+                      data-hover="true"
+                    >
+                      <div className="truncate pr-2">
+                        <div className="font-mono text-[9px] text-indigo-400">{c.id}</div>
+                        <div className="font-body text-xs font-light text-white/70 truncate">{c.title}</div>
+                      </div>
+                      <span className={`text-[9px] font-mono shrink-0 uppercase px-1.5 py-0.5 rounded ${
+                        c.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400' :
+                        c.status === 'In Progress' ? 'bg-amber-500/10 text-amber-400' :
+                        'bg-rose-500/10 text-rose-400'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Tab Content */}
+          <div className="lg:col-span-8">
+            {activeTab === 'lodge' ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="glass-strong rounded-[2.5rem] p-8 border border-white/[0.05] relative overflow-hidden"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="font-heading text-2xl font-light text-white/85">Lodge Citizen Grievance</h4>
+                  <button
+                    onClick={handleDemoFill}
+                    className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 uppercase tracking-widest bg-transparent border-none flex items-center gap-1.5 cursor-none"
+                    data-hover="true"
+                  >
+                    <span>⚡ AI Transcribe Demo</span>
+                  </button>
+                </div>
+
+                {successMsg && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl px-4 py-3.5 mb-6 font-body font-light"
+                  >
+                    {successMsg}
+                  </motion.div>
+                )}
+
+                {showVoiceDemo ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center">
+                    <div className="flex items-end gap-1 h-12 mb-6">
+                      {bars.map(i => (
+                        <motion.div key={i} className="w-1.5 rounded-full bg-indigo-500"
+                          animate={{height:[6, Math.random()*36+10, 6]}}
+                          transition={{duration:.4+Math.random()*.4,repeat:Infinity,delay:i*.03,ease:'easeInOut'}} />
+                      ))}
+                    </div>
+                    <p className="font-heading text-lg italic text-white/60 animate-pulse">
+                      "Processing voice input stream..."
+                    </p>
+                    <span className="text-[10px] font-mono text-white/20 mt-2">TRANSCRIBING ENGLISH/HINDI AUDIO GRID</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                      <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Grievance Description</label>
+                      <textarea 
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder="Describe the issues like pothole reporting, water clogging, sewage leakage..."
+                        rows={4}
+                        required
+                        className="w-full bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/50 rounded-2xl py-3 px-4 text-white text-sm font-light placeholder-white/20 focus:outline-none transition-all resize-none focus:shadow-[0_0_20px_rgba(99,102,241,0.04)]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Department</label>
+                        <select 
+                          value={dept}
+                          onChange={(e) => setDept(e.target.value)}
+                          className="w-full bg-black/60 border border-white/[0.08] text-white text-xs font-light rounded-xl px-3 py-3 focus:outline-none"
+                        >
+                          <option value="PWD" className="bg-[#030508]">PWD (Roads & Lights)</option>
+                          <option value="Water Supply" className="bg-[#030508]">Water Supply</option>
+                          <option value="Sanitation" className="bg-[#030508]">Sanitation & Waste</option>
+                          <option value="Electricity" className="bg-[#030508]">Electricity</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Priority</label>
+                        <select 
+                          value={priority}
+                          onChange={(e) => setPriority(e.target.value)}
+                          className="w-full bg-black/60 border border-white/[0.08] text-white text-xs font-light rounded-xl px-3 py-3 focus:outline-none"
+                        >
+                          <option value="Low" className="bg-[#030508]">Low</option>
+                          <option value="Medium" className="bg-[#030508]">Medium</option>
+                          <option value="High" className="bg-[#030508]">High</option>
+                          <option value="Critical" className="bg-[#030508]">Critical</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={filing}
+                      className="w-full btn-primary !rounded-xl !py-3.5 flex items-center justify-center gap-2 cursor-none font-light tracking-wide bg-transparent border-none"
+                      data-hover="true"
+                    >
+                      {filing ? (
+                        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                      ) : user ? (
+                        'File Complaint via AI Router'
+                      ) : (
+                        'Sign In to File Complaint'
+                      )}
+                    </button>
+                  </form>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="glass-strong rounded-[2.5rem] p-8 border border-white/[0.05] relative min-h-[400px] flex flex-col"
+              >
+                <h4 className="font-heading text-2xl font-light text-white/85 mb-6">Track Grievance Status</h4>
+
+                {/* Search Bar */}
+                <form onSubmit={handleSearch} className="flex gap-3 mb-8">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text"
+                      value={searchId}
+                      onChange={(e) => setSearchId(e.target.value)}
+                      placeholder="Enter Complaint ID (e.g., COM-402)"
+                      className="w-full bg-white/[0.02] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl py-3 px-4 text-white text-sm font-light placeholder-white/20 focus:outline-none transition-all"
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    className="btn-primary !rounded-xl !py-3 !px-6 cursor-none bg-transparent border-none"
+                    data-hover="true"
+                  >
+                    Track ID
+                  </button>
+                </form>
+
+                {trackedComplaint ? (
+                  // Detailed stepper tracking view
+                  <div className="space-y-8 flex-1">
+                    <div className="glass rounded-2xl p-5 border border-white/[0.03] flex justify-between items-start gap-4">
+                      <div>
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                          <span className="font-mono text-xs text-white/40 bg-white/[0.04] px-2 py-0.5 rounded">{trackedComplaint.id}</span>
+                          <span className="font-body text-xs text-white/40">{trackedComplaint.dept} Department</span>
+                        </div>
+                        <h5 className="font-body text-base font-light text-white/90 leading-snug">{trackedComplaint.title}</h5>
+                      </div>
+                      <span className={`text-[10px] font-mono tracking-wide uppercase px-2.5 py-1 rounded-lg border ${
+                        trackedComplaint.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        trackedComplaint.status === 'In Progress' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      }`}>
+                        {trackedComplaint.status}
+                      </span>
+                    </div>
+
+                    {/* Timeline stepper */}
+                    <div className="relative pl-8 space-y-8 border-l border-white/[0.06] text-left">
+                      {/* Step 1 */}
+                      <div className="relative">
+                        <div className="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        </div>
+                        <div>
+                          <h6 className="font-heading text-sm text-white/80">Grievance Registered</h6>
+                          <p className="font-body text-xs text-white/35 leading-relaxed">Complaint logged securely in Supabase backend.</p>
+                        </div>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="relative">
+                        <div className="absolute -left-[41px] top-1 w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        </div>
+                        <div>
+                          <h6 className="font-heading text-sm text-white/80">AI Classification Complete</h6>
+                          <p className="font-body text-xs text-white/35 leading-relaxed">
+                            Routed automatically to the {trackedComplaint.dept} team with {trackedComplaint.priority} priority flag.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="relative">
+                        <div className={`absolute -left-[41px] top-1 w-6 h-6 rounded-full flex items-center justify-center border ${
+                          trackedComplaint.status === 'Resolved' || trackedComplaint.status === 'In Progress'
+                            ? 'bg-emerald-500/20 border-emerald-500'
+                            : 'bg-[#030508] border-white/[0.12]'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            trackedComplaint.status === 'Resolved' || trackedComplaint.status === 'In Progress'
+                              ? 'bg-emerald-400'
+                              : 'bg-white/10'
+                          }`} />
+                        </div>
+                        <div>
+                          <h6 className={`font-heading text-sm ${
+                            trackedComplaint.status === 'Resolved' || trackedComplaint.status === 'In Progress' ? 'text-white/80' : 'text-white/20'
+                          }`}>
+                            Officer Assigned & Dispatching
+                          </h6>
+                          <p className="font-body text-xs text-white/35 leading-relaxed">
+                            {trackedComplaint.status === 'Resolved' ? 'Investigation complete and resolution action verified.' :
+                             trackedComplaint.status === 'In Progress' ? 'Officer currently dispatched to site. SLA deadline active.' :
+                             'Pending department workload review.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Step 4 */}
+                      <div className="relative">
+                        <div className={`absolute -left-[41px] top-1 w-6 h-6 rounded-full flex items-center justify-center border ${
+                          trackedComplaint.status === 'Resolved'
+                            ? 'bg-emerald-500/20 border-emerald-500'
+                            : 'bg-[#030508] border-white/[0.12]'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            trackedComplaint.status === 'Resolved' ? 'bg-emerald-400' : 'bg-white/10'
+                          }`} />
+                        </div>
+                        <div>
+                          <h6 className={`font-heading text-sm ${
+                            trackedComplaint.status === 'Resolved' ? 'text-white/80' : 'text-white/20'
+                          }`}>
+                            Grievance Resolved
+                          </h6>
+                          <p className="font-body text-xs text-white/35 leading-relaxed">
+                            {trackedComplaint.status === 'Resolved' 
+                              ? 'Issue resolved successfully. Verified on live database.' 
+                              : 'Awaiting completion verification.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Search fallback placeholder
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-12 text-white/20 border border-dashed border-white/[0.06] rounded-2xl">
+                    <svg className="w-10 h-10 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="font-body text-sm font-light">No active grievance being tracked.</p>
+                    <p className="font-body text-[11px] text-white/15 mt-1">Enter a Complaint ID or click one of the recent issues in the database.</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ── Community ─────────────────────────────────────────────
+const Community = ({ setView, user }) => (
+  <section id="community" className="py-32 relative">
+    <div className="max-w-4xl mx-auto px-6 text-center">
+      <motion.div className="glass-strong rounded-[3rem] p-12 md:p-20"
+        initial={{opacity:0,scale:.96}} whileInView={{opacity:1,scale:1}} viewport={{once:true}} transition={{duration:.9}}>
+        <div className="section-kicker mb-6">// Citizen Power</div>
+        <h2 className="font-heading text-4xl md:text-5xl font-light tracking-tighter text-white/85 mb-6">Community Validates Reality.</h2>
+        <p className="font-body font-light text-white/35 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+          Nearby citizens confirm complaint severity, verify resolution, and upvote urgency — creating a trusted, crowd-verified civic intelligence layer.
+        </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <MagBtn onClick={() => user ? alert("Demo: You are registered as an active validator!") : setView('login')} className="btn-primary" data-hover="true">Get Involved</MagBtn>
+          <MagBtn className="btn-primary" data-hover="true">View Leaderboard</MagBtn>
+        </div>
+      </motion.div>
+    </div>
+  </section>
+);
+
+// ── Footer ────────────────────────────────────────────────
+const Footer = () => (
+  <footer className="py-20 border-t border-white/[0.04]">
+    <div className="max-w-6xl mx-auto px-6">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
+        <div className="max-w-xs">
+          <h3 className="font-heading text-3xl font-light tracking-tight text-white/80 mb-4">BharatSync</h3>
+          <p className="font-body font-light text-white/30 leading-relaxed">AI-powered civic intelligence for a smarter, more transparent India.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-12">
+          {[
+            {title:'Platform', links:['AI Engine','Live Map','Dashboard','Analytics']},
+            {title:'Company', links:['About','Careers','Press','Contact']},
+          ].map(col => (
+            <div key={col.title}>
+              <div className="section-kicker mb-5">{col.title}</div>
+              <ul className="space-y-3">
+                {col.links.map(l => (
+                  <li key={l}><a href="#" className="font-body font-light text-sm text-white/30 hover:text-white/70 transition-colors">{l}</a></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/[0.04]">
+        <span className="font-mono text-[10px] text-white/15 tracking-wider">© 2026 BHARATSYNC CIVIC INTELLIGENCE</span>
+        <span className="font-mono text-[10px] text-white/15 tracking-wider mt-2 md:mt-0">HACKXCELERATE 2K26</span>
+      </div>
+    </div>
+  </footer>
+);
+
+// ── Login Page ───────────────────────────────────────────
+const Login = ({ onLoginSuccess, onBackToHome }) => {
+  const [role, setRole] = useState('citizen'); // 'citizen' or 'officer'
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  const handleSendOtp = (e) => {
+    e.preventDefault();
+    if (!phone || phone.length < 10) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setOtpSent(true);
+    }, 1200);
+  };
+
+  const handleVerifyOtp = (e) => {
+    e.preventDefault();
+    if (otp !== '1234' && otp !== '123456') {
+      setError('Invalid OTP. For demo, use 1234');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    setTimeout(async () => {
+      try {
+        let loggedUser = null;
+        if (supabase) {
+          const { data, error } = await supabase
+            .from('civic_users')
+            .select('*')
+            .eq('identifier', phone)
+            .eq('role', 'Citizen')
+            .maybeSingle();
+
+          if (error) throw error;
+
+          if (data) {
+            loggedUser = data;
+          } else {
+            // Auto register citizen
+            const newId = `IND-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newCitizen = {
+              id: newId,
+              name: `Citizen ${phone.slice(-4)}`,
+              role: 'Citizen',
+              identifier: phone
+            };
+            const { error: insertErr } = await supabase.from('civic_users').insert([newCitizen]);
+            if (insertErr) console.warn("Failed to save new citizen to Supabase:", insertErr);
+            loggedUser = newCitizen;
+          }
+        }
+        
+        if (!loggedUser) {
+          // Local fallback
+          loggedUser = { name: 'Rahul Sharma', role: 'Citizen', id: 'IND-9082-8812' };
+        }
+
+        setSuccess(true);
+        setLoggedInUser(loggedUser);
+        setTimeout(() => {
+          onLoginSuccess(loggedUser);
+        }, 1500);
+      } catch (err) {
+        console.warn("Supabase user auth failed, using mock fallback.", err);
+        const fallbackUser = { name: `Citizen ${phone.slice(-4)}`, role: 'Citizen', id: 'IND-9082-8812' };
+        setSuccess(true);
+        setLoggedInUser(fallbackUser);
+        setTimeout(() => {
+          onLoginSuccess(fallbackUser);
+        }, 1500);
+      } finally {
+        setLoading(false);
+      }
+    }, 1200);
+  };
+
+  const handleOfficerLogin = (e) => {
+    e.preventDefault();
+    if (!email) {
+      setError('Please enter your government email address');
+      return;
+    }
+    if (!email.includes('@gov.in')) {
+      setError('Invalid domain. Please use a valid @gov.in address');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your security key / password');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    setTimeout(async () => {
+      try {
+        let loggedUser = null;
+        if (supabase) {
+          const { data, error } = await supabase
+            .from('civic_users')
+            .select('*')
+            .eq('identifier', email)
+            .eq('password', password)
+            .eq('role', 'Officer')
+            .maybeSingle();
+
+          if (error) throw error;
+
+          if (data) {
+            loggedUser = data;
+          } else {
+            setError('Officer credentials not found or incorrect. Try email "officer@gov.in", password "admin"');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        if (!loggedUser) {
+          // Fallback if supabase client is not running
+          if (email === 'officer@gov.in' && password === 'admin') {
+            loggedUser = { name: 'Officer A. Sharma', role: 'Officer', id: 'OFF-PWD-847', department: 'PWD Department' };
+          } else {
+            setError('Invalid credentials. Use officer@gov.in / admin');
+            setLoading(false);
+            return;
+          }
+        }
+
+        setSuccess(true);
+        setLoggedInUser(loggedUser);
+        setTimeout(() => {
+          onLoginSuccess(loggedUser);
+        }, 1500);
+      } catch (err) {
+        console.warn("Supabase authentication failed. Trying local fallback.", err);
+        if (email === 'officer@gov.in' && password === 'admin') {
+          const fallbackUser = { name: 'Officer A. Sharma', role: 'Officer', id: 'OFF-PWD-847', department: 'PWD Department' };
+          setSuccess(true);
+          setLoggedInUser(fallbackUser);
+          setTimeout(() => {
+            onLoginSuccess(fallbackUser);
+          }, 1500);
+        } else {
+          setError('Authentication failed. Use email "officer@gov.in", password "admin".');
+          setLoading(false);
+        }
+      }
+    }, 1200);
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center relative py-20 px-4">
+      {/* Background elements */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-violet-500/10 blur-[120px] pointer-events-none" />
+      
+      {/* Glass card container */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -30, scale: 0.98 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="w-full max-w-md glass-strong rounded-[2.5rem] p-8 md:p-10 border border-white/[0.08] relative z-10 overflow-hidden"
+      >
+        {/* Decorative corner light */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Back navigation */}
+        <button 
+          onClick={onBackToHome}
+          className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors text-xs font-mono mb-8 group cursor-none bg-transparent border-none outline-none"
+          data-hover="true"
+        >
+          <span className="inline-block transition-transform group-hover:-translate-x-1">←</span> BACK TO HOME
+        </button>
+
+        {success ? (
+          // Success view
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="font-heading text-2xl font-light text-white/90 mb-2">Access Granted</h3>
+            <p className="font-body font-light text-white/40 text-sm max-w-xs">
+              Welcome back, <span className="text-white/80 font-medium">{loggedInUser?.name}</span>. Establishing secure civic session...
+            </p>
+            <div className="mt-8 flex gap-1 justify-center items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.15s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
+            </div>
+          </motion.div>
+        ) : (
+          // Login Form view
+          <>
+            {/* Header */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full glass flex items-center justify-center">
+                  <span className="font-heading font-semibold text-xs text-indigo-400">B</span>
+                </div>
+                <span className="section-kicker !tracking-widest">CIVIC GATEWAY</span>
+              </div>
+              <h2 className="font-heading text-3xl font-light tracking-tight text-white/90">Sign In</h2>
+              <p className="font-body font-light text-white/30 text-sm mt-1">Access India's premier AI-driven governance dashboard.</p>
+            </div>
+
+            {/* Role Tab Selector */}
+            <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-xl p-1 mb-8">
+              <button 
+                type="button"
+                onClick={() => { setRole('citizen'); setError(''); }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-heading font-light tracking-wide transition-all cursor-none ${
+                  role === 'citizen' 
+                    ? 'bg-white/[0.06] border border-white/[0.08] text-white shadow-lg' 
+                    : 'text-white/40 hover:text-white/70 bg-transparent border-none'
+                }`}
+                data-hover="true"
+              >
+                Citizen Portal
+              </button>
+              <button 
+                type="button"
+                onClick={() => { setRole('officer'); setError(''); }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-heading font-light tracking-wide transition-all cursor-none ${
+                  role === 'officer' 
+                    ? 'bg-white/[0.06] border border-white/[0.08] text-white shadow-lg' 
+                    : 'text-white/40 hover:text-white/70 bg-transparent border-none'
+                }`}
+                data-hover="true"
+              >
+                Civic Officer
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-rose-500/10 border border-rose-500/20 text-rose-400/90 text-xs rounded-xl px-4 py-3 mb-6 font-body font-light flex items-center gap-2.5"
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            {/* Forms */}
+            {role === 'citizen' ? (
+              <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-6">
+                {!otpSent ? (
+                  <div>
+                    <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Phone Number</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/30 font-light text-sm">
+                        🇮🇳 +91
+                      </div>
+                      <input 
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="Enter 10-digit number"
+                        disabled={loading}
+                        className="w-full bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/50 rounded-xl py-3.5 pl-20 pr-4 text-white text-sm font-light placeholder-white/20 focus:outline-none transition-all focus:shadow-[0_0_20px_rgba(99,102,241,0.08)]"
+                      />
+                    </div>
+                    <span className="block text-[10px] text-white/20 font-body font-light mt-2.5">
+                      Verify identity securely using OTP. (Enter any valid 10 digits)
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-2.5">
+                      <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest">Verification OTP</label>
+                      <button 
+                        type="button" 
+                        onClick={() => setOtpSent(false)}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 font-mono transition-colors cursor-none bg-transparent border-none"
+                        data-hover="true"
+                      >
+                        Change Number
+                      </button>
+                    </div>
+                    <input 
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Enter 4-digit demo OTP"
+                      disabled={loading}
+                      maxLength={4}
+                      className="w-full bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/50 rounded-xl py-3.5 px-4 text-center text-white text-lg tracking-[0.6em] font-mono placeholder-white/20 focus:outline-none transition-all focus:shadow-[0_0_20px_rgba(99,102,241,0.08)]"
+                    />
+                    <span className="block text-[10px] text-indigo-400/70 font-body font-light mt-2.5">
+                      Demo Mode: Enter <span className="font-semibold font-mono text-white/70 bg-white/[0.05] px-1.5 py-0.5 rounded">1234</span> to sign in.
+                    </span>
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full btn-primary !rounded-xl !py-3.5 flex items-center justify-center gap-2 cursor-none font-light tracking-wide bg-transparent border-none"
+                  data-hover="true"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  ) : otpSent ? (
+                    'Verify & Sign In'
+                  ) : (
+                    'Send Verification Code'
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleOfficerLogin} className="space-y-6">
+                <div>
+                  <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Government Email</label>
+                  <input 
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="officer@nic.in or officer@gov.in"
+                    disabled={loading}
+                    className="w-full bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/50 rounded-xl py-3.5 px-4 text-white text-sm font-light placeholder-white/20 focus:outline-none transition-all focus:shadow-[0_0_20px_rgba(99,102,241,0.08)]"
+                  />
+                  <span className="block text-[10px] text-white/20 font-body font-light mt-1.5">
+                    Demo Mode: Enter any email ending with <span className="font-mono">@gov.in</span>
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Security Key / Password</label>
+                  <input 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter security key"
+                    disabled={loading}
+                    className="w-full bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/50 rounded-xl py-3.5 px-4 text-white text-sm font-light placeholder-white/20 focus:outline-none transition-all focus:shadow-[0_0_20px_rgba(99,102,241,0.08)]"
+                  />
+                  <span className="block text-[10px] text-indigo-400/70 font-body font-light mt-2.5">
+                    Demo Mode: Password is <span className="font-semibold font-mono text-white/70 bg-white/[0.05] px-1.5 py-0.5 rounded">admin</span>
+                  </span>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full btn-primary !rounded-xl !py-3.5 flex items-center justify-center gap-2 cursor-none font-light tracking-wide bg-transparent border-none"
+                  data-hover="true"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  ) : (
+                    'Verify Officer Credentials'
+                  )}
+                </button>
+              </form>
+            )}
+          </>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
+// ── App ───────────────────────────────────────────────────
+const App = () => {
+  const [view, setView] = useState('landing'); // 'landing' | 'login'
+  const [user, setUser] = useState(null);
+  const [complaints, setComplaints] = useState([]);
+  const [resolvedCount, setResolvedCount] = useState(1203);
+  const [dbError, setDbError] = useState(false);
+
+  const localMockData = [
+    { id: 'COM-402', title: 'Streetlight malfunction on Ward Road', dept: 'PWD', priority: 'High', status: 'Pending', time: '12m ago' },
+    { id: 'COM-399', title: 'Water leakage near Sector-4 main line', dept: 'Water Supply', priority: 'Critical', status: 'In Progress', time: '45m ago' },
+    { id: 'COM-391', title: 'Pothole reporting near high school crossroad', dept: 'PWD', priority: 'Medium', status: 'Pending', time: '1h ago' }
+  ];
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setView('landing'); // Return to landing, logged in
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setView('landing');
+  };
+
+  const fetchComplaints = async () => {
+    if (!supabase) {
+      setComplaints(localMockData);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('complaints')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const formatted = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          dept: item.dept,
+          priority: item.priority,
+          status: item.status,
+          time: item.time || 'Just now'
+        }));
+        setComplaints(formatted);
+        const resolved = data.filter(c => c.status === 'Resolved').length;
+        setResolvedCount(1203 + resolved);
+        setDbError(false);
+      } else {
+        // Seed database if empty
+        const { error: seedError } = await supabase.from('complaints').insert(localMockData);
+        if (seedError) console.warn('Database seed skipped:', seedError);
+        setComplaints(localMockData);
+        setDbError(false);
+      }
+    } catch (err) {
+      console.warn('Supabase fetch failed. Setting fallback mock data.', err);
+      setDbError(true);
+      setComplaints(localMockData);
+    }
+  };
+
+  const handleResolve = async (id) => {
+    setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: 'Resolved' } : c));
+    setResolvedCount(prev => prev + 1);
+
+    if (supabase && !dbError) {
+      try {
+        const { error } = await supabase
+          .from('complaints')
+          .update({ status: 'Resolved' })
+          .eq('id', id);
+        if (error) console.error('Supabase update failed:', error);
+      } catch (err) {
+        console.error('Failed to resolve complaint in database:', err);
+      }
+    }
+  };
+
+  const handleNewComplaint = (newComplaint, dbSaved) => {
+    setComplaints(prev => [newComplaint, ...prev]);
+  };
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [view]);
+
+  useEffect(() => {
+    const attachCursorEvents = () => {
+      const cursor = document.getElementById('cursor');
+      const ring = document.getElementById('cursor-ring');
+      if (!cursor || !ring) return;
+      document.querySelectorAll('a,button,[data-hover],input,select,textarea').forEach(el => {
+        el.removeEventListener('mouseenter', el._enterHandler);
+        el.removeEventListener('mouseleave', el._leaveHandler);
+        
+        el._enterHandler = () => { cursor.classList.add('hovering'); ring.classList.add('hovering'); };
+        el._leaveHandler = () => { cursor.classList.remove('hovering'); ring.classList.remove('hovering'); };
+        
+        el.addEventListener('mouseenter', el._enterHandler);
+        el.addEventListener('mouseleave', el._leaveHandler);
+      });
+    };
+
+    attachCursorEvents();
+    const t = setTimeout(attachCursorEvents, 300);
+    return () => clearTimeout(t);
+  }, [view, user, complaints]);
+
+  return (
+    <main>
+      <Navbar user={user} setView={setView} onLogout={handleLogout} />
+      {view === 'login' ? (
+        <Login onLoginSuccess={handleLogin} onBackToHome={() => setView('landing')} />
+      ) : (
+        <>
+          <Hero setView={setView} user={user} />
+          <Stats />
+          <AIEngine />
+          <Escalation />
+          <LiveMap />
+          {user && user.role === 'Officer' ? (
+            <Dashboard 
+              user={user} 
+              setView={setView} 
+              complaints={complaints} 
+              resolvedCount={resolvedCount} 
+              onResolve={handleResolve} 
+              dbError={dbError} 
+            />
+          ) : (
+            <GrievanceHub 
+              user={user} 
+              setView={setView} 
+              complaints={complaints}
+              onComplaintFiled={handleNewComplaint} 
+            />
+          )}
+          <Community setView={setView} user={user} />
+          <Footer />
+        </>
+      )}
+    </main>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
